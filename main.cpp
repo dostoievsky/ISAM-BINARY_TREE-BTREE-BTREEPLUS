@@ -15,12 +15,12 @@
 
 int main(int argc, char** argv) {
 
-    FILE *arq = new FILE;
+    FILE *arq;
     TRegistro x;
     
     time_t start,end;
 
-    int n, situacao, metodo;
+    int n, situacao, metodo, maxtabela;
 
     metodo = atoi(argv[1]);
     n = atoi(argv[2]);
@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
 
     //Pesquisa Sequencial Indexada
     if (metodo == 1) {
-        int maxtabela = n/ITENSPAGINA;
+        maxtabela = n/ITENSPAGINA;
         start=clock();
         PesquisaSequencial(&x, arq, maxtabela);
         end=clock();

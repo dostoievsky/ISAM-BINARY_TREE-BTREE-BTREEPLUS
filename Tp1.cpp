@@ -1,4 +1,6 @@
+#include "string.h"
 #include "Tp1.h"
+#include <algorithm>
 
 int GeraArquivo(FILE *arq,int situacao, int n)
 {

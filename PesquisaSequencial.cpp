@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include "Tp1.h"
 #include "PesquisaSequencial.h"
 
 void PesquisaSequencial(TRegistro *item, FILE *arq, int maxtabela) 

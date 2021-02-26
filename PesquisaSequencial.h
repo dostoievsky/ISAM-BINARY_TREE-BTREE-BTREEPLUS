@@ -5,10 +5,6 @@
 #ifndef PESQUISASEQUENCIAL_H
 #define	PESQUISASEQUENCIAL_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include "Tp1.h"
-
 #define ITENSPAGINA 4
 
 // Tabela de Indices - Arquivo Sequencial Indexado
