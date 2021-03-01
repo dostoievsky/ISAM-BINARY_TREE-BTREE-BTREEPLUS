@@ -71,7 +71,9 @@ int Pesquisa(TRegistro *x, TipoApontador Ap, TAnalise *valores)
         valores->comp++;
         Pesquisa(x, Ap->p[i], valores);
     }
+    return 0;
 }
+
 void InsereNaPagina(TipoApontador Ap, TRegistro Reg, TipoApontador ApDir, TAnalise *valores)
 {
     int k;

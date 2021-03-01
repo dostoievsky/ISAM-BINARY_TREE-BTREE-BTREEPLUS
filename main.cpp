@@ -1,32 +1,34 @@
-/* 
- * File:   main.cpp
- */
+//LEIA O README.md
 
+//HEADERS INCLUIDOS
 #include "Tp1.h"
 #include "PesquisaSequencial.h"
 #include "ArvoreBinaria.h"
 #include "ArvoreB.h"
 #include "ArvoreBE.h"
 
-
-/*
- * 
- */
-
+//MAIN
 int main(int argc, char** argv) {
 
-    FILE *arq;
+    //VARIAVEIS DE EXECUÇÃO
+    FILE *arq = new FILE;
     TRegistro x;
+    x.dado1 = 0;
+    x.dado2 = 0;
     
+    //VARIAVEL DE TEMPO
     time_t start,end;
 
-    int n, situacao, metodo, maxtabela;
+    //VARIAVEIS DE ARGUMENTO
+    int n, situacao, metodo;
 
+    //ATRIBUINDO VARIAVEIS DE ARGUMENTO
     metodo = atoi(argv[1]);
     n = atoi(argv[2]);
     situacao = atoi(argv[3]);
     x.chave = atoi(argv[4]);
 
+    //VERIFICANDO ARGUMENTOS
     if (metodo< 1 || metodo> 4)
     {
         printf("Metodo errado (1~4)!\n");
@@ -37,7 +39,8 @@ int main(int argc, char** argv) {
         printf("Situacao errada (1~3)!\n");
         return 0;
     }
-    
+
+    //GERANDO ARQUIVO    
     if(!(GeraArquivo(arq, situacao, n)))
     {
         printf("Erro ao criar arquivo!\n");
@@ -49,16 +52,16 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    //Pesquisa Sequencial Indexada
+    //PESQUISA SEQUENCIAL INDEXADA
     if (metodo == 1) {
-        maxtabela = n/ITENSPAGINA;
+        int maxtabela = n/ITENSPAGINA;
         start=clock();
         PesquisaSequencial(&x, arq, maxtabela);
         end=clock();
         printf ("Tempo gasto %f milisegundos\n",((double)( end - start ) / ((double)CLOCKS_PER_SEC )));
     }
     
-    //Arvore Binaria de Pesquisa
+    //ARVORE BINARIA DE PESQUISA
     if (metodo == 2) {
         start=clock();
         ArvoreBinaria(arq, x);
@@ -66,7 +69,7 @@ int main(int argc, char** argv) {
         printf ("Tempo gasto %f milisegundos\n",((double)( end - start ) / ((double)CLOCKS_PER_SEC )));
     }
     
-    //Arvore B
+    //ARVORE B
     if(metodo == 3){
         start=clock();
         ArvoreB(arq, x.chave);
@@ -74,7 +77,7 @@ int main(int argc, char** argv) {
         printf ("Tempo gasto %f milisegundos\n",((double)( end - start ) / ((double)CLOCKS_PER_SEC )));
     }
     
-    //ArvoreBE
+    //ARVORE B ESTRELA
     if(metodo ==4){
         start=clock();
         ArvoreBE(arq,x.chave);
@@ -83,7 +86,7 @@ int main(int argc, char** argv) {
     }
     
     
-    //Verifica -P
+    //VERIFICA ARGUMENTO -P
     if(argc == 6)
     {
         if(strcmp(argv[5],"-P")==0)

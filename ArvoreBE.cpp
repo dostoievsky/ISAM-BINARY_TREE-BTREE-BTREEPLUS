@@ -1,4 +1,3 @@
-#include "Tp1.h"
 #include "ArvoreBE.h"
 
 void Inicializa (TipoApontadorEstrela *Arvore)
@@ -6,62 +5,239 @@ void Inicializa (TipoApontadorEstrela *Arvore)
     *Arvore = NULL;
 }
 
-void Pesquisa(TRegistro *x, TipoApontadorEstrela *Ap) {
-    int i;
-    TipoApontadorEstrela Pag;
-    Pag = *Ap;
-    if ((*Ap)->Pt == Interna) {
-        i = 1;
-        while (i < Pag->UU.U0.ni && x->chave > Pag->UU.U0.ri[i - 1].chave)  
-			i++;
-        if (x->chave < Pag->UU.U0.ri[i - 1].chave) 
-			Pesquisa(x, &Pag->UU.U0.pi[i - 1]);
-        else 
-			Pesquisa(x, &Pag->UU.U0.pi[i]);
-        return;
-    }
-    i = 1;
-    while (i < Pag->UU.U1.ne && x->chave > Pag->UU.U1.re[i - 1].chave) //pesquisa na pagina folha 
-		i++;
-    if (x->chave == Pag->UU.U1.re[i - 1].chave)
+//INICIALIZA, CONSTROI E ENTÃO REALIZA PESQUISA 
+//NA ARVORE B ESTRELA
+void ArvoreBE(FILE *arq, int chave)
+{
+		//APONTADOR DE INDICES, ARVORE EXTERNA DE INDICES
+    TipoApontadorEstrela Ap;
+
+		//REGISTRO QUE RECEBERÁ DO ARQUIVO PARA INSERIR EM ARVORE
+    TRegistro item;
+    
+		//VALORES DE ANALISE DE COMPARAÇÕES E MOVIMENTO DE DADOS
+    TAnalise valores;
+    AnaliseInicia(&valores);
+    
+		//ALOCA MEMORIA PARA ARVORE
+    Ap=(TipoApontadorEstrela)malloc(sizeof(TipoPaginaEstrela));
+
+		//INICIALIZA ARVORE
+    Inicializa (&Ap);
+
+		//LE ARQUIVO E INSERE NA ARVORE
+    while (fread(&item, sizeof(TRegistro), 1, arq) == 1)
     {
-	//valores->comp++;
-        *x = Pag->UU.U1.re[i - 1];
-        
-        printf("Chave encontrada!\n");
-        printf("Chave: %d.\n", x->chave);
-        printf("Dado1: %.2lf\n", x->dado1);
-        printf("Dado2: %ld\n", x->dado2);
-        printf("Dado3: %s.\n", x->dado3);
-        printf("\n Medidas\n");
+        valores.transf++;
+        Insere(item, &Ap, &valores);
+    }
+
+		//VARIAVEL DE INSERÇÃO DE ITENS RECEBE A CHAVE PARA PESQUISA
+    item.chave=chave;
+    
+		//PESQUISA CHAVE NA ARVORE
+    Pesquisa(&item , &Ap);
+}
+
+//Insere registro na arvore (onde sera inserido sera verificado no Ins)
+void Insere(const TRegistro& Reg, TipoApontadorEstrela *Ap, TAnalise *valores)
+{
+		//VARIAVEL PARA CONTROLAR O CRESCIMENTO DA ARVORE
+    int Cresceu;
+		//VARIAVEL DE INSERIR REGISTRO
+    TRegistro RegRetorno;
+		//PAGINA DE ARVORE E PAGINA TEMPORARIA PARA 
+		//ACRESNTAR A ARVORE EM CASO DE CRESCIMENTO
+    TipoPaginaEstrela *ApRetorno, *ApTemp;
+    
+		//FUNÇÃO DE INSERÇÃO PARA ARVORE
+    Ins(Reg, *Ap, &Cresceu, &RegRetorno, &ApRetorno, valores);
+
+		//SE A ARVORE CRESCEU, CRESCE NA ALTURA DA RAIZ
+		//E A ARVORE RECEBE NOVO REGISTRO
+    if (Cresceu)   
+    {	
+		ApTemp = (TipoPaginaEstrela*) malloc (sizeof(TipoPaginaEstrela));
+        if(ApRetorno == NULL){
+			ApTemp->Pt = Externa;
+			ApTemp->UU.U1.ne = 1;
+			ApTemp->UU.U1.re[0] = RegRetorno;
+		}
+		else{	
+			//SENÃO, ARVORE RECEBE APENAS REGISTRO
+			//NA PAGINA INTERNA
+			ApTemp->Pt = Interna;
+			ApTemp->UU.U0.ni = 1;
+			ApTemp->UU.U0.ri[0] = RegRetorno;
+			ApTemp->UU.U0.pi[1] = ApRetorno;
+			ApTemp->UU.U0.pi[0] = *Ap;
+		}
+		//ANEXA O DADO À ARVORE
+		*Ap = ApTemp;
+	}
+}
+
+void Ins(TRegistro Reg, TipoApontadorEstrela Ap, int *Cresceu, TRegistro *RegRetorno, TipoApontadorEstrela *ApRetorno, TAnalise *valores)
+{
+		//TIPOS TEMPORARIOS PARA INSERIR DADOS
+    TipoApontadorEstrela ApTemp,Pag;
+    long i=1, j;
+		//PAGINA RECEBE ARVORE
+    Pag = Ap;
+	
+	//SE A ARVORE AINDA É VAZIA, CRESCE
+	//E ADICIONA O PRIMEIRO REGISTRO E
+	//O PRIMEIRO INDICE
+	if (Ap == NULL) {
+		*Cresceu = 1;
+		(*RegRetorno) = Reg;
+		(*ApRetorno) = NULL;
+		return;
+	}
+	
+	//SENÃO, CAMINHAMOS PELOS INDICES PARA
+	//ENCONTRAR A POSIÇÃO
+	if (Ap->Pt == Interna){
+		while (i < Pag->UU.U0.ni && Reg.chave > Pag->UU.U0.ri[i - 1].chave){
+			i++;
+			valores->comp++;
+		}
+		if (Reg.chave < Pag->UU.U0.ri[i - 1].chave)
+		{
+			valores->comp++;
+			i--;
+		}
+		Ins(Reg, Pag->UU.U0.pi[i], Cresceu, RegRetorno, ApRetorno, valores);	
+		return;
+	
+		//SENÃO CRESCEU, BASTA RETORNAMOS
+		if (!*Cresceu) {
+			return;
+		}
+	
+
+	//SE CRESCEU, REALIZAMOS O OVERFLOW:
+	//PAGINA DE INDICES PRECISA DE SER
+	//DIVIDA
+		ApTemp = (TipoApontadorEstrela) calloc(1, sizeof(TipoPaginaEstrela));
+		ApTemp->UU.U0.ni = 0;
+		ApTemp->UU.U0.pi[0] = NULL;
+
+		if (i < M + 1){
+			TRegistro RegTemp;
+			RegTemp.dado1 = 0;
+			RegTemp.dado2 = 0;
+
+			RegTemp.chave = Ap->UU.U0.ri[MM - 1].chave;
+			InsereNaPagina(ApTemp, RegTemp, Ap->UU.U0.pi[MM],valores);
+			Ap->UU.U0.ni--;
+			InsereNaPagina(Ap, *RegRetorno, *ApRetorno,valores);
+		} 
+		else{
+			InsereNaPagina(ApTemp, *RegRetorno, *ApRetorno,valores);
+		}
+
+		for (j = M + 2; j <= MM; j++) {
+			TRegistro RegTemp;
+			RegTemp.dado1 = 0;
+			RegTemp.dado2 = 0;
+
+			RegTemp.chave = Ap->UU.U0.ri[j - 1].chave;
+			InsereNaPagina(ApTemp, RegTemp, Ap->UU.U0.pi[j],valores);
+		}
+		Ap->UU.U0.ni = M;
+		ApTemp->UU.U0.pi[0] = Ap->UU.U0.pi[M + 1];
+		(*RegRetorno).chave = Ap->UU.U0.ri[M].chave;
+		*ApRetorno = ApTemp;
+	}
+
+    //COMPARAÇÕES DE DADOS NA PAGINA FOLHA
+	while (i < Pag->UU.U1.ne && Reg.chave > Pag->UU.U1.re[i - 1].chave){
+		i++;
+		valores->comp++;
+	}
+	
+	//SE O REGISTRO JÁ ESTIVER PRESENTE, RETORNAMOS
+	if (Reg.chave == Pag->UU.U1.re[i - 1].chave)
+        {   
+            valores->comp++;
+            return;
+        }
+	
+	//SENÃO, CONTINUAMOS A CAMINHAR
+	if (Reg.chave < Ap->UU.U1.re[i - 1].chave) {
+		i--;
+	}
+
+	//CHAMA RECURSIVA PARA ACESSAR OUTRA PAGINA
+	Ins(Reg,NULL,Cresceu,RegRetorno,ApRetorno,valores);
+	if (!*Cresceu) {
+		return;
+	}
+	
+
+	if (Pag->UU.U1.ne < MM)
+    {
+		//PAGINA TEM ESPAÇO 
+        valores->comp++;
+        InsereNaPagina(Pag, *RegRetorno, *ApRetorno, valores);
+        *Cresceu = 0;
         return;
     }
-    else 
-		printf("TipoRegistro nao esta presente na arvore\n");
+		
+    //Overflow. Página externa (folha) precisa ser dividida (excedeu limite MM) 
+    ApTemp = (TipoApontadorEstrela) malloc(sizeof(TipoPaginaEstrela));
+    ApTemp->Pt = Externa;
+	ApTemp->UU.U1.ne = 0;
+    if (i <= M + 1)
+    {
+        InsereNaPagina(ApTemp, Ap->UU.U1.re[MM - 1], NULL, valores);
+        Ap->UU.U1.ne--;
+        InsereNaPagina(Pag, *RegRetorno, *ApRetorno, valores);
+    }
+    else
+        InsereNaPagina(ApTemp, *RegRetorno, *ApRetorno, valores);
+    for (j = M + 2; j <= MM; j++)
+        InsereNaPagina(ApTemp, Pag->UU.U1.re[j - 1], Ap->UU.U0.pi[j], valores);
+    Ap->UU.U1.ne = M;
+    *RegRetorno = Ap->UU.U1.re[M];
+	InsereNaPagina(ApTemp, Ap->UU.U1.re[M], NULL,valores);
+    *ApRetorno = ApTemp;
 }
 
 void InsereNaPagina(TipoApontadorEstrela Ap, TRegistro Reg, TipoApontadorEstrela ApDir, TAnalise *valores)
-{//insere registro na pagina (folha ou indice)
+{
+	//INSERE REGISTRO NA PAGINA FOLHA, E NO INDICE, CASO SEJA TAMBÉM
+	//UMA CHAVE DE INDICE
     int k;
     int NaoAchouPosicao;
-
-    if(Ap->Pt == Interna){ //se for nó interno(indice) busca na arvore onde o registro será inserido
-		k = Ap->UU.U0.ni;
-		NaoAchouPosicao = (k > 0);
-		while(NaoAchouPosicao) 
-		{
-			if (Reg.chave >= Ap->UU.U0.ri[k - 1].chave) 
+		
+		//CASO SEJA UM NÓ INTERNO (DE INDICE)
+		//PESQUISA NA ARVORE O LOCAL DE
+		//INSERÇÃO DO REGISTRO
+    if(Ap->Pt == Interna)
+		{ 
+	
+			k = Ap->UU.U0.ni;
+			NaoAchouPosicao = (k > 0);
+			
+			while(NaoAchouPosicao) 
 			{
-				valores->comp++;
-				NaoAchouPosicao = 0;
-				break;
-			}
-			Ap->UU.U0.ri[k] = Ap->UU.U0.ri[k - 1];
-			Ap->UU.U0.pi[k + 1] = Ap->UU.U0.pi[k];
-			k--;
-			if (k < 1)
-				NaoAchouPosicao = 0;
+				if (Reg.chave >= Ap->UU.U0.ri[k - 1].chave) 
+				{
+					valores->comp++;
+					NaoAchouPosicao = 0;
+					break;
+				}
+				Ap->UU.U0.ri[k] = Ap->UU.U0.ri[k - 1];
+				Ap->UU.U0.pi[k + 1] = Ap->UU.U0.pi[k];
+				k--;
+
+				if (k < 1) {
+					NaoAchouPosicao = 0;
+				}
 		}
+
 		Ap->UU.U0.ri[k] = Reg;
 		Ap->UU.U0.pi[k + 1] = ApDir;
 		Ap->UU.U0.ni++;
@@ -89,162 +265,58 @@ void InsereNaPagina(TipoApontadorEstrela Ap, TRegistro Reg, TipoApontadorEstrela
     Ap->UU.U1.ne++;
 }
 
-void Ins(TRegistro Reg, TipoApontadorEstrela Ap, int *Cresceu, TRegistro *RegRetorno, TipoApontadorEstrela *ApRetorno, TAnalise *valores)
-{
-    TipoApontadorEstrela ApTemp,Pag;
-    long i=1, j;
-    Pag = Ap;
-	int n;
-	
-	if (Ap == NULL) {
-		*Cresceu = 1;
-		(*RegRetorno) = Reg;
-		(*ApRetorno) = NULL;
-		return;
-	}
-	
-	//caminhamento em indices
-	if (Ap->Pt == Interna){
-		while (i < Pag->UU.U0.ni && Reg.chave > Pag->UU.U0.ri[i - 1].chave){
-			i++;
-			valores->comp++;
-		}
-		if (Reg.chave < Pag->UU.U0.ri[i - 1].chave)
-		{
-			valores->comp++;
-			i--;
-		}
-		Ins(Reg, Pag->UU.U0.pi[i], Cresceu, RegRetorno, ApRetorno, valores);	
-		return;
-	
-	
-		if (!*Cresceu) {
-			return;
-		}
-	
-	//Overflow. Página interna (indice) precisa ser dividida (excedeu limite MM)
-		ApTemp = (TipoApontadorEstrela) calloc(1, sizeof(TipoPaginaEstrela));
-		ApTemp->UU.U0.ni = 0;
-		ApTemp->UU.U0.pi[0] = NULL;
+void Pesquisa(TRegistro *x, TipoApontadorEstrela *Ap) {
+    //INDICE MM
+		int i;
+		
+		//VARIAVEL QUE RECEBERA CADA PAGINA DA ARVORE
+    TipoApontadorEstrela Pag;
 
-		if (i < M + 1){
-			TRegistro RegTemp;
-			RegTemp.chave = Ap->UU.U0.ri[MM - 1].chave;
-			InsereNaPagina(ApTemp, RegTemp, Ap->UU.U0.pi[MM],valores);
-			Ap->UU.U0.ni--;
-			InsereNaPagina(Ap, *RegRetorno, *ApRetorno,valores);
-		} 
-		else{
-			InsereNaPagina(ApTemp, *RegRetorno, *ApRetorno,valores);
-		}
+		//PAGINA RECEBE ARVORE
+    Pag = *Ap;
 
-		for (j = M + 2; j <= MM; j++) {
-			TRegistro RegTemp;
-			RegTemp.chave = Ap->UU.U0.ri[j - 1].chave;
-			InsereNaPagina(ApTemp, RegTemp, Ap->UU.U0.pi[j],valores);
-		}
-		Ap->UU.U0.ni = M;
-		ApTemp->UU.U0.pi[0] = Ap->UU.U0.pi[M + 1];
-		(*RegRetorno).chave = Ap->UU.U0.ri[M].chave;
-		*ApRetorno = ApTemp;
-	}
+		//SE A PAGINA É UMA PAGINA INTERNA...
+    if ((*Ap)->Pt == Interna) {
+				//INICIALIZA INDICE NA PRIMEIRA PAGINA
+        i = 1;
 
-    //em paginas folha
-	while (i < Pag->UU.U1.ne && Reg.chave > Pag->UU.U1.re[i - 1].chave){
-			i++;
-			valores->comp++;
-	}
-	
-	if (Reg.chave == Pag->UU.U1.re[i - 1].chave)
-        {   
-            valores->comp++;
-            //O registro ja esta presente
-            //*Cresceu = 0;
-            return;
-        }
-	
-	if (Reg.chave < Ap->UU.U1.re[i - 1].chave) {
-		i--;
-	}
-
-	Ins(Reg,NULL,Cresceu,RegRetorno,ApRetorno,valores);
-	if (!*Cresceu) {
-		return;
-	}
-	
-	if (Pag->UU.U1.ne < MM)
-    {
-		//Pagina tem espaco 
-        valores->comp++;
-        InsereNaPagina(Pag, *RegRetorno, *ApRetorno, valores);
-        *Cresceu = 0;
+				//ENQUANTO NOSSO INDICE NÃO CHEGOU AO FIM...
+        while (i < Pag->UU.U0.ni && x->chave > Pag->UU.U0.ri[i - 1].chave)
+					//INCREMENTA INDICE  
+					i++;
+				//VALIDAÇÃO BINARIA, SE A CHAVE DE PESQUISA É MENOR QUE
+				//A PRIMEIRA CHAVE NA PAGINA, OLHAMOS A PAGINA MAIS A ESQUERDA
+        if (x->chave < Pag->UU.U0.ri[i - 1].chave)  
+					Pesquisa(x, &Pag->UU.U0.pi[i - 1]);
+        else 
+					//SENÃO, OLHAMOS A PAGINA INCREMENTADA EM WHILE, SÓ PARAMOS AO CHEGAR
+					//A UMA PAGINA FOLHA, PARA ENTÃO EXECUTAR A PESQUISA SEQUENCIAL
+					Pesquisa(x, &Pag->UU.U0.pi[i]);	
         return;
     }
-		
-    //Overflow. Página externa (folha) precisa ser dividida (excedeu limite MM) 
-    ApTemp = (TipoApontadorEstrela) malloc(sizeof(TipoPaginaEstrela));
-    ApTemp->Pt = Externa;
-	ApTemp->UU.U1.ne = 0;
-    if (i <= M + 1)
-    {
-        InsereNaPagina(ApTemp, Ap->UU.U1.re[MM - 1], NULL, valores);
-        Ap->UU.U1.ne--;
-        InsereNaPagina(Pag, *RegRetorno, *ApRetorno, valores);
-    }
-    else
-        InsereNaPagina(ApTemp, *RegRetorno, *ApRetorno, valores);
-    for (j = M + 2; j <= MM; j++)
-        InsereNaPagina(ApTemp, Pag->UU.U1.re[j - 1], Ap->UU.U0.pi[j], valores);
-    Ap->UU.U1.ne = M;
-    *RegRetorno = Ap->UU.U1.re[M];
-	InsereNaPagina(ApTemp, Ap->UU.U1.re[M], NULL,valores);
-    *ApRetorno = ApTemp;
-} 
-//Insere registro na arvore (onde sera inserido sera verificado no Ins)
-void Insere(TRegistro Reg, TipoApontadorEstrela *Ap, TAnalise *valores)
-{
-    int Cresceu;
-    TRegistro RegRetorno;
-    TipoPaginaEstrela *ApRetorno, *ApTemp;
-    
-    Ins(Reg, *Ap, &Cresceu, &RegRetorno, &ApRetorno, valores);
+		//RESET DE I PARA PESQUISA SEQUENCIAL EM PAGINA FOLHA
+    i = 1;
+    while (i < Pag->UU.U1.ne && x->chave > Pag->UU.U1.re[i - 1].chave)
+			i++;
 
-    if (Cresceu)   // Arvore cresce na altura pela raiz 
-    {	
-		ApTemp = (TipoPaginaEstrela*) malloc (sizeof(TipoPaginaEstrela));
-        if(ApRetorno == NULL){
-			ApTemp->Pt = Externa;
-			ApTemp->UU.U1.ne = 1;
-			ApTemp->UU.U1.re[0] = RegRetorno;
-		}
-		else{	
-			ApTemp->Pt = Interna;
-			ApTemp->UU.U0.ni = 1;
-			ApTemp->UU.U0.ri[0] = RegRetorno;
-			ApTemp->UU.U0.pi[1] = ApRetorno;
-			ApTemp->UU.U0.pi[0] = *Ap;
-		}
-		*Ap = ApTemp;
-	}
-}
-//Inicializa arvore b estrela
-void ArvoreBE(FILE *arq, int chave)
-{
-    TipoApontadorEstrela Ap;
-    TRegistro item;
-    
-    TAnalise valores;
-    AnaliseInicia(&valores);
-    
-    Ap=(TipoApontadorEstrela)malloc(sizeof(TipoPaginaEstrela));
-    Inicializa (&Ap);
-    while (fread(&item, sizeof(TRegistro), 1, arq) == 1)
+		//SE A CHAVE DE PESQUISA FOI ENCONTRADA, VALORES SÃO IMPRIMIDOS
+    if (x->chave == Pag->UU.U1.re[i - 1].chave)
     {
-        valores.transf++;
-        Insere(item, &Ap, &valores);
+        *x = Pag->UU.U1.re[i - 1];
+        printf("Chave encontrada!\n");
+        printf("Chave: %d.\n", x->chave);
+        printf("Dado1: %.2lf\n", x->dado1);
+        printf("Dado2: %ld\n", x->dado2);
+        printf("Dado3: %s.\n", x->dado3);
+        printf("\n Medidas\n");
+        return;
     }
-    item.chave=chave;
-    
-    Pesquisa(&item , &Ap);
+		//SE NÃO, EXIBE MENSAGEM DE FALHA
+    else
+		{
+			printf("TipoRegistro nao esta presente na arvore\n");
+		}
 }
+
+
 
