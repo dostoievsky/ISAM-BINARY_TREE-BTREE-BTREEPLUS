@@ -1,13 +1,11 @@
-/* 
- * File:   PesquisaSequencial.h
- */
+
 
 #ifndef PESQUISASEQUENCIAL_H
 #define	PESQUISASEQUENCIAL_H
 
 #define ITENSPAGINA 4
 
-// Tabela de Indices - Arquivo Sequencial Indexado
+// TABELA DE INDICES
 
 typedef struct{
     int posicao;

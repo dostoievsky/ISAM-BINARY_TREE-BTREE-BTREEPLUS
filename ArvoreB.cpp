@@ -1,38 +1,41 @@
 #include "Tp1.h"
 #include "ArvoreB.h"
 
-
+//INICIALIZA A ARVORE NULA
 void Inicializa (TipoApontador *Arvore)
 {
     *Arvore = NULL;
 }
  
+//FUNCAO PRINCIPAL 
 void ArvoreB(FILE *arq, int chave)
 {
     TipoApontador Ap;
     TRegistro item;
     
     TAnalise valores;
-    AnaliseInicia(&valores);
+    AnaliseInicia(&valores); //INICIA A ANALISE VAZIA
     
     Ap=(TipoApontador)malloc(sizeof(TipoPagina));
-    Inicializa (&Ap);
+    Inicializa (&Ap);  //CRIANDO A RAIZ
     while (fread(&item, sizeof(TRegistro), 1, arq) == 1)
     {
         valores.transf++;
-        Insere(item, &Ap, &valores);
+        Insere(item, &Ap, &valores); //INSERINDO REGISTRO
     }
     item.chave=chave;
     
     printf("Comparacoes geracao: %d\n", valores.comp);
     
-    Pesquisa(&item ,Ap, &valores);
+    Pesquisa(&item ,Ap, &valores);  //EXECUTA A PESQUISA NA ARVORE 
     
     printf("\n Medidas\n");
     printf("Comparações: %d.\nTransferencias: %d.\n\n", valores.comp, valores.transf);
 
 }
 
+
+//FUNCAO PARA PESQUISAR A CHAVE NA ARVORE
 int Pesquisa(TRegistro *x, TipoApontador Ap, TAnalise *valores)
 {
     long i = 1;
@@ -49,7 +52,7 @@ int Pesquisa(TRegistro *x, TipoApontador Ap, TAnalise *valores)
         i++;
     }
 
-    if (x->chave == Ap->r[i-1].chave)
+    if (x->chave == Ap->r[i-1].chave)  //ENCONTRA A CHAVE
     { 
         valores->comp++;
         *x = Ap->r[i-1];
@@ -61,12 +64,12 @@ int Pesquisa(TRegistro *x, TipoApontador Ap, TAnalise *valores)
         printf("\n Medidas\n");
         return 1;
     }
-    if (x->chave < Ap->r[i-1].chave)
+    if (x->chave < Ap->r[i-1].chave)   //CHAVE MENOR 
     {
         valores->comp++;
         Pesquisa(x, Ap->p[i-1], valores);
     }
-    else
+    else                             //CHAVE MAIOR
     {
         valores->comp++;
         Pesquisa(x, Ap->p[i], valores);
@@ -74,6 +77,7 @@ int Pesquisa(TRegistro *x, TipoApontador Ap, TAnalise *valores)
     return 0;
 }
 
+//INSERE REGISTRO NA PAGINA
 void InsereNaPagina(TipoApontador Ap, TRegistro Reg, TipoApontador ApDir, TAnalise *valores)
 {
     int k;
@@ -81,6 +85,7 @@ void InsereNaPagina(TipoApontador Ap, TRegistro Reg, TipoApontador ApDir, TAnali
 
     k = Ap->n;
     NaoAchouPosicao = (k > 0);
+    //ATE ENCONTRAR UMA POSICAO
     while (NaoAchouPosicao)
     {
         if (Reg.chave >= Ap->r[k - 1].chave)
@@ -95,11 +100,14 @@ void InsereNaPagina(TipoApontador Ap, TRegistro Reg, TipoApontador ApDir, TAnali
         if (k < 1)
             NaoAchouPosicao = 0;
     }
+    //INSERE
     Ap->r[k] = Reg;
     Ap->p[k + 1] = ApDir;
     Ap->n++;
 }
 
+
+//FAZ A DIVISAO DA PAGINA SE NECESSARIO
 void Ins(TRegistro Reg, TipoApontador Ap, int *Cresceu, TRegistro *RegRetorno, TipoApontador *ApRetorno, TAnalise *valores)
 {
     TipoApontador ApTemp;
@@ -117,11 +125,10 @@ void Ins(TRegistro Reg, TipoApontador Ap, int *Cresceu, TRegistro *RegRetorno, T
 
     while (i < Ap->n && Reg.chave > Ap->r[i - 1].chave)
         i++;
-
+    //REGISTRO PRESENTE
     if (Reg.chave == Ap->r[i - 1].chave)
     {   
         valores->comp++;
-        //printf("O registro ja esta presente.\n");
         *Cresceu = 0;
         return;
     }
@@ -137,12 +144,12 @@ void Ins(TRegistro Reg, TipoApontador Ap, int *Cresceu, TRegistro *RegRetorno, T
     if (Ap->n < MM)
     {
         valores->comp++;
-        //Pagina tem espaco 
-        InsereNaPagina(Ap, *RegRetorno, *ApRetorno, valores);
+        //PAGINA TEM ESPACO
+        InsereNaPagina(Ap, *RegRetorno, *ApRetorno, valores);//INSERE 
         *Cresceu = 0;
         return;
     }
-    // Overflow: Pagina tem que ser dividida 
+    // PAGINA TEM QUE SER DIVIDIDA
     ApTemp = (TipoApontador) malloc(sizeof(TipoPagina));
     ApTemp->n = 0;
     ApTemp->p[0] = NULL;
@@ -162,6 +169,8 @@ void Ins(TRegistro Reg, TipoApontador Ap, int *Cresceu, TRegistro *RegRetorno, T
     *ApRetorno = ApTemp;
 } 
 
+
+//INICIA O PROCESSO DE INSERCAO
 void Insere(TRegistro Reg, TipoApontador *Ap, TAnalise *valores)
 {
     int Cresceu;
@@ -170,7 +179,7 @@ void Insere(TRegistro Reg, TipoApontador *Ap, TAnalise *valores)
     
     Ins(Reg, *Ap, &Cresceu, &RegRetorno, &ApRetorno, valores);
 
-    if (Cresceu)   // Arvore cresce na altura pela raiz 
+    if (Cresceu)   // ARVORE CRESCE NA ALTURA PELA RAIZ 
     {
         valores->comp++;
         ApTemp=(TipoPagina*)malloc(sizeof(TipoPagina));

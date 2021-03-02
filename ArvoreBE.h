@@ -33,21 +33,12 @@ typedef struct TipoPaginaEstrela {
   } UU;
 } TipoPaginaEstrela;
 
-//
+
 void ArvoreBE(FILE *arq, int chave);
-
-//PESQUISA DADOS NA ARVORE
-void Pesquisa(TRegistro *x, TipoApontadorEstrela *Ap);
-
-//
+void Pesquisa(TRegistro *x, TipoApontadorEstrela *Ap, TAnalise *valores);
 void InsereNaPagina(TipoApontadorEstrela Ap, TRegistro Reg, TipoApontadorEstrela ApDir, TAnalise *valores);
-
-//
 void Insere(const TRegistro& Reg, TipoApontadorEstrela *Ap, TAnalise *valores);
-
-//
 void Ins(TRegistro Reg, TipoApontadorEstrela Ap, int *Cresceu, TRegistro *RegRetorno, TipoApontadorEstrela *ApRetorno, TAnalise *valores);
-
+void imprimeBStarTree(TipoApontadorEstrela Ap, int chave, TAnalise *valores);
 
 #endif	
-

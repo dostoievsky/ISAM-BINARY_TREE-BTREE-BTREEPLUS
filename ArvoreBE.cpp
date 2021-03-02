@@ -34,9 +34,12 @@ void ArvoreBE(FILE *arq, int chave)
 
 		//VARIAVEL DE INSERÇÃO DE ITENS RECEBE A CHAVE PARA PESQUISA
     item.chave=chave;
+
+    //VER ARVORE
+    imprimeBStarTree(Ap, chave, &valores);
     
 		//PESQUISA CHAVE NA ARVORE
-    Pesquisa(&item , &Ap);
+    //Pesquisa(&item , &Ap, &valores);
 }
 
 //Insere registro na arvore (onde sera inserido sera verificado no Ins)
@@ -265,50 +268,33 @@ void InsereNaPagina(TipoApontadorEstrela Ap, TRegistro Reg, TipoApontadorEstrela
     Ap->UU.U1.ne++;
 }
 
-void Pesquisa(TRegistro *x, TipoApontadorEstrela *Ap) {
-    //INDICE MM
-		int i;
-		
-		//VARIAVEL QUE RECEBERA CADA PAGINA DA ARVORE
+void Pesquisa(TRegistro *x, TipoApontadorEstrela *Ap, TAnalise *valores) {
+    int i;
     TipoApontadorEstrela Pag;
-
-		//PAGINA RECEBE ARVORE
     Pag = *Ap;
-
-		//SE A PAGINA É UMA PAGINA INTERNA...
-    if ((*Ap)->Pt == Interna) {
-				//INICIALIZA INDICE NA PRIMEIRA PAGINA
+    if ((*Ap)->Pt == Interna){
         i = 1;
-
-				//ENQUANTO NOSSO INDICE NÃO CHEGOU AO FIM...
-        while (i < Pag->UU.U0.ni && x->chave > Pag->UU.U0.ri[i - 1].chave)
-					//INCREMENTA INDICE  
-					i++;
-				//VALIDAÇÃO BINARIA, SE A CHAVE DE PESQUISA É MENOR QUE
-				//A PRIMEIRA CHAVE NA PAGINA, OLHAMOS A PAGINA MAIS A ESQUERDA
-        if (x->chave < Pag->UU.U0.ri[i - 1].chave)  
-					Pesquisa(x, &Pag->UU.U0.pi[i - 1]);
-        else 
-					//SENÃO, OLHAMOS A PAGINA INCREMENTADA EM WHILE, SÓ PARAMOS AO CHEGAR
-					//A UMA PAGINA FOLHA, PARA ENTÃO EXECUTAR A PESQUISA SEQUENCIAL
-					Pesquisa(x, &Pag->UU.U0.pi[i]);	
+        while (i < Pag->UU.U0.ni && x->chave > Pag->UU.U0.ri[i - 1].chave) i++;
+        if (x->chave < Pag->UU.U0.ri[i - 1].chave){
+            Pesquisa(x, &Pag->UU.U0.pi[i - 1], valores);
+        }
+        else{
+            Pesquisa(x, &Pag->UU.U0.pi[i], valores);
+        }
         return;
     }
-		//RESET DE I PARA PESQUISA SEQUENCIAL EM PAGINA FOLHA
     i = 1;
-    while (i < Pag->UU.U1.ne && x->chave > Pag->UU.U1.re[i - 1].chave)
-			i++;
+    while(i < Pag->UU.U1.ne && x->chave > Pag->UU.U1.re[i - 1].chave) i++;
 
-		//SE A CHAVE DE PESQUISA FOI ENCONTRADA, VALORES SÃO IMPRIMIDOS
-    if (x->chave == Pag->UU.U1.re[i - 1].chave)
-    {
+    if (x->chave == Pag->UU.U1.re[i - 1].chave){
         *x = Pag->UU.U1.re[i - 1];
-        printf("Chave encontrada!\n");
-        printf("Chave: %d.\n", x->chave);
+        printf("chave encontrada!\n");
+        printf("chave: %d.\n", x->chave);
         printf("Dado1: %.2lf\n", x->dado1);
         printf("Dado2: %ld\n", x->dado2);
         printf("Dado3: %s.\n", x->dado3);
         printf("\n Medidas\n");
+				printf("Comparações: %d.\nTransferencias: %d.\n\n", valores->comp, valores->transf);
         return;
     }
 		//SE NÃO, EXIBE MENSAGEM DE FALHA
@@ -318,5 +304,45 @@ void Pesquisa(TRegistro *x, TipoApontadorEstrela *Ap) {
 		}
 }
 
+void imprimeBStarTree(TipoApontadorEstrela Ap, int chave, TAnalise *valores)
+{
+		TRegistro encontrou;
+    if (Ap == NULL)
+        return;
 
-
+    if(Ap->Pt == Interna)
+    {
+      int i = 0;
+        while (i <= Ap->UU.U0.ni) {
+          imprimeBStarTree(Ap->UU.U0.pi[i], chave, valores);
+            //não acessar uma posição inválida
+            if (i != Ap->UU.U0.ni)
+								if (chave == Ap->UU.U0.ri[i].chave){
+									cout << "encontrou interno!";
+								}
+                //printf("Interno : (%d) %d\n", i, Ap->UU.U0.ri[i].chave);
+            i++;
+        }
+    }
+    else
+    {
+    	//printf("Externo: ");
+       TipoApontadorEstrela aux = Ap;
+        for (int j = 0; j < Ap->UU.U1.ne; j++) {
+					if (chave == aux->UU.U1.re[j].chave){
+									encontrou = aux->UU.U1.re[j];
+									printf("chave encontrada!\n");
+        					printf("chave: %d.\n", encontrou.chave);
+        					printf("Dado1: %.2lf\n", encontrou.dado1);
+        					printf("Dado2: %ld\n", encontrou.dado2);
+        					printf("Dado3: %s.\n", encontrou.dado3);
+        					printf("\n Medidas\n");
+									printf("Comparações: %d.\nTransferencias: %d.\n\n", valores->comp, valores->transf);
+									return;
+									//cout << "encontrou externo!";
+					}
+            //printf("(%d) %d ", j, aux->UU.U1.re[j].chave);
+        }
+      	//printf("\n");
+    }
+}
